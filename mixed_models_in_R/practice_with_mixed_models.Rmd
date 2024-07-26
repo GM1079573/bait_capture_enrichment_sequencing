@@ -1,0 +1,20 @@
+```{r}
+library(Matrix)
+library(lme4)
+
+
+politeness = read.csv("http://www.bodowinter.com/tutorial/politeness_data.csv")
+
+boxplot(frequency ~ attitude*gender,
+          col=c("white","lightgray"),politeness)
+```
+Mixed models
+```{r}
+politeness_model = lmer(frequency ~ attitude + (1|subject) + (1|scenario), data=politeness)
+
+summary(politeness_model)
+print("AIC:")
+AIC(politeness_model)
+```
+
+

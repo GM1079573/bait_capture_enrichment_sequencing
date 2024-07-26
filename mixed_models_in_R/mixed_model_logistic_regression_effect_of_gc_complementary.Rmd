@@ -1,0 +1,122 @@
+## Packages and load data
+```{r}
+library(Matrix)
+library(lme4)
+library(tidyverse)
+library(jtools)
+library(MuMIn)
+
+df <- read_tsv("../data_exports/updated_forced_alignments_analysis_with_nucleotide_diversity_all_probes_results_df.tsv")
+```
+
+## binning normalized_coverage into two baskets for the logistic regression
+```{r}
+# threshold for binning normalized_coverage values into two baskets
+threshold <- 0.3
+
+# apply threshold to dataframe
+df_mutated <- df %>%
+  mutate(high_enrichment = if_else(normalized_coverage > threshold, 1, 0))
+
+# # Rescale predictor variables to avoid warning
+# df_mutated <- df_mutated %>%
+#   mutate(across(c(genetic_distance, gc_complementary, avg_nucleotide_diversity), scale))
+
+```
+
+## Mixed model logistic regression
+```{r}
+model_1 <- glmer(high_enrichment ~ genetic_distance + (1 | run_id), 
+                 data = df_mutated, 
+                 family = binomial(link = "logit"), 
+                 control = glmerControl(optimizer = "bobyqa"), 
+                 nAGQ = 10)
+
+summary(model_1)
+
+model_2 <- glmer(high_enrichment ~ genetic_distance + gc_complementary + (1 | run_id), 
+                 data = df_mutated, 
+                 family = binomial(link = "logit"), 
+                 control = glmerControl(optimizer = "bobyqa"), 
+                 nAGQ = 10)
+
+summary(model_2)
+
+anova(model_1, model_2)
+
+model_3 <- glmer(high_enrichment ~ genetic_distance + gc_complementary + avg_nucleotide_diversity + (1 | run_id), 
+                 data = df_mutated, 
+                 family = binomial(link = "logit"), 
+                 control = glmerControl(optimizer = "bobyqa"), 
+                 nAGQ = 10)
+
+summary(model_3)
+
+anova(model_2, model_3)
+```
+```{r}
+# For mixed-effects models (GLMMs)
+r2_model_1 <- r.squaredGLMM(model_1)
+r2_model_2 <- r.squaredGLMM(model_2)
+r2_model_3 <- r.squaredGLMM(model_3)
+
+# Print results
+print("R² for Model 1:")
+print(r2_model_1)
+print("R² for Model 2:")
+print(r2_model_2)
+print("R² for Model 3:")
+print(r2_model_3)
+```
+
+## Hydrogen bond score regressions
+```{r}
+model_4 <- glmer(high_enrichment ~ hydrogen_bond_score + (1 | run_id), 
+                 data = df_mutated, 
+                 family = binomial, 
+                 control = glmerControl(optimizer = "bobyqa"), 
+                 nAGQ = 10)
+
+summary(model_4)
+
+model_5 <- glmer(high_enrichment ~ hydrogen_bond_score + avg_nucleotide_diversity + (1 | run_id), 
+                 data = df_mutated, 
+                 family = binomial, 
+                 control = glmerControl(optimizer = "bobyqa"), 
+                 nAGQ = 10)
+
+summary(model_5)
+
+anova(model_4, model_5)
+```
+## Trying out a mixed linear model for fun
+```{r}
+# # linear model 1
+# lm1 <- lmer(coverage_ratio ~ genetic_distance + (1 | run_id), 
+#                 data = df_mutated, 
+#                 REML = FALSE)
+# 
+# summary(lm1)
+# 
+# lm2 <- lmer(coverage_ratio ~ genetic_distance + gc_complementary + (1 | run_id), 
+#                 data = df_mutated, 
+#                 REML = FALSE)
+# 
+# summary(lm2)
+# 
+# anova(lm1, lm2)
+# 
+# lm3 <- lmer(coverage_ratio ~ genetic_distance + gc_complementary + avg_nucleotide_diversity + (1 | run_id), 
+#                 data = df_mutated, 
+#                 REML = FALSE)
+# 
+# summary(lm3)
+# 
+# anova(lm2, lm3)
+```
+
+
+
+
+
+
